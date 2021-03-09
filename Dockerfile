@@ -33,20 +33,24 @@ RUN set -x \
 
 FROM golang:1.15-buster AS go-builder
 
-COPY docker-entrypoint.go /var/tmp/
+COPY *.go /var/tmp/
 
 RUN set -x \
  && cd /var/tmp \
- && go build -o /docker-entrypoint docker-entrypoint.go
-
+ && go build -o /docker-entrypoint docker-entrypoint.go \
+ && go build -o /chasenize chasenize.go \
+ ;
 
 FROM gcr.io/distroless/cc-debian10
+
+LABEL authors="yujiorama@gmail.com"
 
 ARG INSTALL_DIR="/opt/kytea"
 ENV KYTEA_DIR="${INSTALL_DIR}"
 
-COPY --from=go-builder /docker-entrypoint /docker-entrypoint
 COPY --from=builder "${INSTALL_DIR}" "${INSTALL_DIR}"
 COPY --from=builder "/etc/ld.so.conf.d/kytea.conf" "/etc/ld.so.conf.d/kytea.conf"
+COPY --from=go-builder /docker-entrypoint /docker-entrypoint
+COPY --from=go-builder /chasenize "${KYTEA_DIR}/bin/chasenize"
 
 ENTRYPOINT ["/docker-entrypoint"]
